@@ -1,0 +1,135 @@
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+import seaborn as sns
+from mpl_toolkits.mplot3d import Axes3D
+
+# Dados fornecidos
+data = {
+    'Y': [0.054, 0.154, 0.073, 0.182, 0.241, 0.316, 0.29, 0.061, 0.143, 0.188, 0.176, 0.248, 0.357, 0.403, 0.342, 0.335, 0.408, 0.366, 0.482, 0.545, 0.596, 0.59, 0.631, 0.61, 0.482, 0.477, 0.551, 0.516, 0.561, 0.588, 0.561, 0.58, 0.674, 0.718, 0.754, 0.8, 0.654, 0.744, 0.711, 0.855, 0.932, 0.927, 0.914, 0.914, 0.973, 1, 0.998],
+    'X1': [0.13, 0.215, 0.25, 0.267, 0.389, 0.49, 0.491, 0.004, 0.164, 0.225, 0.314, 0.447, 0.477, 0.505, 0.537, 0, 0.176, 0.199, 0.292, 0.38, 0.483, 0.491, 0.491, 0.519, 0.053, 0.114, 0.137, 0.19, 0.21, 0.23, 0.24, 0.26, 0.389, 0.47, 0.521, 0.544, 0, 0.033, 0.049, 0.14, 0.204, 0.21, 0.215, 0.265, 0.346, 0.462, 0.468],
+    'X2': [15.5, 15.5, 15.5, 15.5, 15.5, 15.5, 15.5, 20, 20, 20, 20, 20, 20, 20, 20, 25, 25, 25, 25, 25, 25, 25, 25, 25, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35]
+}
+
+df = pd.DataFrame(data)
+
+# Histogramas
+plt.figure(figsize=(15, 10))
+
+plt.subplot(2, 2, 1)
+sns.histplot(df['Y'], bins=10, kde=True)
+plt.title('Histograma da Eficiência (Y)')
+
+plt.subplot(2, 2, 2)
+sns.histplot(df['X1'], bins=10, kde=True)
+plt.title('Histograma da Pressão Aplicada (X1)')
+
+plt.subplot(2, 2, 3)
+sns.histplot(df['X2'], bins=10, kde=True)
+plt.title('Histograma do Tipo de Liga (X2)')
+
+plt.tight_layout()
+plt.show()
+
+# Boxplots
+plt.figure(figsize=(15, 10))
+
+plt.subplot(2, 2, 1)
+sns.boxplot(y=df['Y'])
+plt.title('Boxplot da Eficiência (Y)')
+
+plt.subplot(2, 2, 2)
+sns.boxplot(y=df['X1'])
+plt.title('Boxplot da Pressão Aplicada (X1)')
+
+plt.subplot(2, 2, 3)
+sns.boxplot(y=df['X2'])
+plt.title('Boxplot do Tipo de Liga (X2)')
+
+plt.tight_layout()
+plt.show()
+
+# Regressão linear simples para X1
+X1 = sm.add_constant(df['X1'])  # Adiciona o intercepto ao modelo
+model_X1 = sm.OLS(df['Y'], X1).fit()
+
+# Regressão linear simples para X2
+X2 = sm.add_constant(df['X2'])  # Adiciona o intercepto ao modelo
+model_X2 = sm.OLS(df['Y'], X2).fit()
+
+# Regressão linear múltipla
+X = sm.add_constant(df[['X1', 'X2']])  # Adiciona o intercepto ao modelo
+model_multiple = sm.OLS(df['Y'], X).fit()
+
+# Coeficiente de determinação R² do modelo múltiplo
+r_squared = model_multiple.rsquared
+
+# Plotagem dos gráficos de regressão
+plt.figure(figsize=(15, 10))
+
+# Regressão Linear Simples entre Y e X1
+plt.subplot(2, 2, 1)
+sns.regplot(x='X1', y='Y', data=df)
+plt.title('Regressão Linear Simples entre Y e X1')
+
+# Regressão Linear Simples entre Y e X2
+plt.subplot(2, 2, 2)
+sns.regplot(x='X2', y='Y', data=df)
+plt.title('Regressão Linear Simples entre Y e X2')
+
+# Gráfico de resíduos do modelo múltiplo
+plt.subplot(2, 2, 3)
+sns.residplot(x=model_multiple.fittedvalues, y=model_multiple.resid, lowess=True)
+plt.xlabel('Valores Ajustados')
+plt.ylabel('Resíduos')
+plt.title('Gráfico de Resíduos do Modelo Múltiplo')
+
+plt.tight_layout()
+plt.show()
+
+# Gráfico 3D da regressão múltipla
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+# Pontos de dados
+ax.scatter(df['X1'], df['X2'], df['Y'], color='b')
+
+# Superfície de regressão
+x_surf, y_surf = np.meshgrid(np.linspace(df['X1'].min(), df['X1'].max(), 100), 
+                             np.linspace(df['X2'].min(), df['X2'].max(), 100))
+onlyX = pd.DataFrame({'X1': x_surf.ravel(), 'X2': y_surf.ravel()})
+onlyX = sm.add_constant(onlyX)
+fittedY = model_multiple.predict(onlyX)
+ax.plot_surface(x_surf, y_surf, fittedY.values.reshape(x_surf.shape), color='r', alpha=0.3)
+
+ax.set_xlabel('Pressão Aplicada (X1)')
+ax.set_ylabel('Tipo de Liga (X2)')
+ax.set_zlabel('Eficiência (Y)')
+ax.set_title('Regressão Linear Múltipla em 3D')
+
+plt.show()
+
+# Exibindo os resultados da regressão
+print("\nRegressão Linear Simples para X1:")
+print(model_X1.summary())
+print("\nRegressão Linear Simples para X2:")
+print(model_X2.summary())
+print("\nRegressão Linear Múltipla:")
+print(model_multiple.summary())
+
+# Resultado de R²
+print(f"\nCoeficiente de Determinação (R²) do modelo múltiplo: {r_squared:.2f}")
+
+# Calculando a matriz de correlação
+corr_matrix = df.corr()
+
+# Visualizando a matriz de correlação
+plt.figure(figsize=(8, 6))
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1, center=0, square=True, linewidths=.5)
+plt.title('Matriz de Correlação entre Y, X1 e X2')
+plt.show()
+
+# Exibindo os resultados da matriz de correlação
+print("\nMatriz de Correlação entre Y, X1 e X2:")
+print(corr_matrix)
